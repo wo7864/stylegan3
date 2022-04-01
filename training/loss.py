@@ -15,7 +15,9 @@ from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import upfirdn2d
 import PIL.Image
 import torchvision.transforms as transforms
+from torch.nn import AvgPool2d, Upsample, L1Loss, MSELoss
 
+l1_loss = L1Loss()
 
 trans_1024 = transforms.Compose([
 				transforms.Resize((1024, 1024)),
@@ -77,12 +79,12 @@ class StyleGAN2Loss(Loss):
         self.blur_fade_kimg     = blur_fade_kimg
         
         self.target_w = torch.load('/content/drive/MyDrive/00243.pt')
-        self.target_w = torch.tensor(target_w).cuda().unsqueeze(0)
+        self.target_w = torch.tensor(self.target_w).cuda().unsqueeze(0)
         self.target_w.requires_grad=True
 
         self.target_x = '/content/drive/MyDrive/00243.png'
-        self.target_x = PIL.Image.open(target_x)
-        self.target_x = trans_1024(target_x).cuda().unsqueeze(0)
+        self.target_x = PIL.Image.open(self.target_x)
+        self.target_x = trans_1024(self.target_x).cuda().unsqueeze(0)
         self.step = 0
 
     def run_G(self, z, c, update_emas=False):
