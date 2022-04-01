@@ -322,8 +322,7 @@ def training_loop(
         if (not done) and (cur_tick != 0) and (cur_nimg < tick_start_nimg + kimg_per_tick * 1000):
             continue
 
-        # 
-        status line, accumulating the same information in training_stats.
+        # status line, accumulating the same information in training_stats.
         tick_end_time = time.time()
         fields = []
         fields += [f"tick {training_stats.report0('Progress/tick', cur_tick):<5d}"]
