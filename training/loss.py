@@ -38,6 +38,8 @@ class StyleGAN2Loss(Loss):
         self.pl_mean            = torch.zeros([], device=device)
         self.blur_init_sigma    = blur_init_sigma
         self.blur_fade_kimg     = blur_fade_kimg
+        
+        print(device, G, D, augment_pipe, r1_gamma, style_mixing_prob, pl_weight, pl_batch_shrink, pl_decay, pl_no_weight_grad, blur_init_sigma, blur_fade_kimg)
 
     def run_G(self, z, c, update_emas=False):
         ws = self.G.mapping(z, c, update_emas=update_emas)
