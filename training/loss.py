@@ -14,12 +14,43 @@ from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import upfirdn2d
 import PIL.Image
+import torchvision.transforms as transforms
+
+
+trans_1024 = transforms.Compose([
+				transforms.Resize((1024, 1024)),
+				transforms.ToTensor(),
+				transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
+
 
 def save_tensor(x, path):
   img = (x.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
   img = PIL.Image.fromarray(img[0].cpu().numpy(), 'RGB')
   img.save(path)
 
+  
+def laplacian_loss(x, y_hat):
+  x_dis_list = []
+  x_pool_list = [x.clone()]
+  y_hat_dis_list = []
+  y_hat_pool_list = [x.clone()]
+  for i in range(5):
+    x_pool_list.append(pool(x_pool_list[-1]))
+    y_hat_pool_list.append(pool(y_hat_pool_list[-1]))
+
+  for i in range(1, 5):
+    x_up = x_pool_list[i]
+    y_hat_up = y_hat_pool_list[i]
+    for j in range(i):
+      x_up = upsample(x_up)
+      y_hat_up = upsample(y_hat_up)
+    x_dis_list.append(x - x_up)
+    y_hat_dis_list.append(y_hat - y_hat_up)
+    
+  loss = 0
+  for x_, y_hat_ in zip(x_dis_list, y_hat_dis_list):
+    loss += l1_loss(x_, y_hat_)
+  return loss
 #----------------------------------------------------------------------------
 
 class Loss:
@@ -45,7 +76,14 @@ class StyleGAN2Loss(Loss):
         self.blur_init_sigma    = blur_init_sigma
         self.blur_fade_kimg     = blur_fade_kimg
         
-        print(device, G, D, augment_pipe, r1_gamma, style_mixing_prob, pl_weight, pl_batch_shrink, pl_decay, pl_no_weight_grad, blur_init_sigma, blur_fade_kimg)
+        self.target_w = torch.load('/content/drive/MyDrive/00243.pt')
+        self.target_w = torch.tensor(target_w).cuda().unsqueeze(0)
+        self.target_w.requires_grad=True
+
+        self.target_x = '/content/drive/MyDrive/00243.png'
+        self.target_x = PIL.Image.open(target_x)
+        self.target_x = trans_1024(target_x).cuda().unsqueeze(0)
+        self.step = 0
 
     def run_G(self, z, c, update_emas=False):
         ws = self.G.mapping(z, c, update_emas=update_emas)
@@ -75,13 +113,11 @@ class StyleGAN2Loss(Loss):
         if self.r1_gamma == 0:
             phase = {'Dreg': 'none', 'Dboth': 'Dmain'}.get(phase, phase)
         blur_sigma = max(1 - cur_nimg / (self.blur_fade_kimg * 1e3), 0) * self.blur_init_sigma if self.blur_fade_kimg > 0 else 0
-        print(blur_sigma)
 
         # Gmain: Maximize logits for generated images.
         if phase in ['Gmain', 'Gboth']:
             with torch.autograd.profiler.record_function('Gmain_forward'):
                 gen_img, _gen_ws = self.run_G(gen_z, gen_c)
-                save_tensor(gen_img, '/content/drive/MyDrive/stylegan3/test.png')
                 gen_logits = self.run_D(gen_img, gen_c, blur_sigma=blur_sigma)
                 training_stats.report('Loss/scores/fake', gen_logits)
                 training_stats.report('Loss/signs/fake', gen_logits.sign())
@@ -89,6 +125,17 @@ class StyleGAN2Loss(Loss):
                 training_stats.report('Loss/G/loss', loss_Gmain)
             with torch.autograd.profiler.record_function('Gmain_backward'):
                 loss_Gmain.mean().mul(gain).backward()
+                
+            if self.step % 4 == 0:
+                
+                gen_img = self.G.synthesis(self.target_w, update_emas=False)
+                save_tensor(gen_img, f'/content/drive/MyDrive/stylegan3/{str(step).zfill(5)}.png')
+                recon_loss = laplacian_loss(self.target_x, gen_img)
+                # recon_loss += l1_loss(target_x, y_hat).squeeze()*0.1
+                # recon_loss += id_loss(target_x, y_hat).squeeze()*0.1
+                recon_loss.backward()
+                print(recon_loss.item())
+            self.step += 1
 
         # Gpl: Apply path length regularization.
         if phase in ['Greg', 'Gboth']:
