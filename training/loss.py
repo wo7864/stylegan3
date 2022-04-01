@@ -143,7 +143,7 @@ class StyleGAN2Loss(Loss):
                 recon_loss += l1_loss(self.target_x, gen_img).squeeze()*0.6
                 # recon_loss += id_loss(target_x, y_hat).squeeze()*0.1
                 recon_loss.backward()
-                print(f'[{step}]: ' + recon_loss.item())
+                print(f'[{self.step}]: ' + recon_loss.item())
             self.step += 1
 
         # Gpl: Apply path length regularization.
