@@ -131,7 +131,7 @@ class StyleGAN2Loss(Loss):
             if self.step % 4 == 0:
                 
                 gen_img = self.G.synthesis(self.target_w, update_emas=False)
-                save_tensor(gen_img, f'/content/drive/MyDrive/stylegan3/{str(step).zfill(5)}.png')
+                save_tensor(gen_img, f'/content/drive/MyDrive/stylegan3/{str(self.step).zfill(5)}.png')
                 recon_loss = laplacian_loss(self.target_x, gen_img)
                 # recon_loss += l1_loss(target_x, y_hat).squeeze()*0.1
                 # recon_loss += id_loss(target_x, y_hat).squeeze()*0.1
