@@ -19,6 +19,7 @@ from torch.nn import AvgPool2d, Upsample, L1Loss, MSELoss
 
 l1_loss = L1Loss()
 pool = AvgPool2d(2, stride=2)
+upsample = Upsample(scale_factor=2, mode='nearest')
 
 trans_1024 = transforms.Compose([
 				transforms.Resize((1024, 1024)),
