@@ -67,6 +67,7 @@ class StyleGAN2Loss(Loss):
         if self.r1_gamma == 0:
             phase = {'Dreg': 'none', 'Dboth': 'Dmain'}.get(phase, phase)
         blur_sigma = max(1 - cur_nimg / (self.blur_fade_kimg * 1e3), 0) * self.blur_init_sigma if self.blur_fade_kimg > 0 else 0
+        print(blur_sigma)
 
         # Gmain: Maximize logits for generated images.
         if phase in ['Gmain', 'Gboth']:
