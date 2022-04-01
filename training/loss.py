@@ -29,7 +29,6 @@ trans_1024 = transforms.Compose([
 
 lpips_loss = lpips.LPIPS(net='alex').cuda()
 mse_loss = MSELoss()
-id_loss = IDLoss().cuda()
 
 
 def save_tensor(x, path):
