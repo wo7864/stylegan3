@@ -14,6 +14,11 @@ from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import upfirdn2d
 
+def save_tensor(x, path):
+  img = (x.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
+  img = PIL.Image.fromarray(img[0].cpu().numpy(), 'RGB')
+  img.save(path)
+
 #----------------------------------------------------------------------------
 
 class Loss:
@@ -75,6 +80,7 @@ class StyleGAN2Loss(Loss):
         if phase in ['Gmain', 'Gboth']:
             with torch.autograd.profiler.record_function('Gmain_forward'):
                 gen_img, _gen_ws = self.run_G(gen_z, gen_c)
+                save_tensor(gen_img, '/content/drive/MyDrive/stylegan3/test.png')
                 gen_logits = self.run_D(gen_img, gen_c, blur_sigma=blur_sigma)
                 training_stats.report('Loss/scores/fake', gen_logits)
                 training_stats.report('Loss/signs/fake', gen_logits.sign())
