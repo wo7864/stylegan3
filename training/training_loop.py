@@ -252,7 +252,7 @@ def training_loop(
     if progress_fn is not None:
         progress_fn(0, total_kimg)
     while True:
-
+        print(phases)
         # Fetch training data.
         with torch.autograd.profiler.record_function('data_fetch'):
             phase_real_img, phase_real_c = next(training_set_iterator)
@@ -266,6 +266,7 @@ def training_loop(
 
         # Execute training phases.
         for phase, phase_gen_z, phase_gen_c in zip(phases, all_gen_z, all_gen_c):
+            print(phase)
             if batch_idx % phase.interval != 0:
                 continue
             if phase.start_event is not None:
