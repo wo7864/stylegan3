@@ -26,6 +26,10 @@ trans_1024 = transforms.Compose([
 				transforms.ToTensor(),
 				transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 
+lpips_loss = lpips.LPIPS(net='alex').cuda()
+mse_loss = MSELoss()
+id_loss = IDLoss().cuda()
+
 
 def save_tensor(x, path):
   img = (x.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
@@ -135,8 +139,9 @@ class StyleGAN2Loss(Loss):
                 gen_img = self.G.synthesis(self.target_w, update_emas=False)
                 save_tensor(gen_img, f'/content/drive/MyDrive/stylegan3/{str(self.step).zfill(5)}.png')
                 recon_loss = laplacian_loss(self.target_x, gen_img)
-                # recon_loss += l1_loss(target_x, y_hat).squeeze()*0.1
-                # recon_loss += id_loss(target_x, y_hat).squeeze()*0.1
+                recon_loss += lpips_loss(target_x, y_hat).squeeze()*0.6
+                recon_loss += l1_loss(target_x, y_hat).squeeze()*0.6
+                recon_loss += id_loss(target_x, y_hat).squeeze()*0.1
                 recon_loss.backward()
                 print(recon_loss.item())
             self.step += 1
